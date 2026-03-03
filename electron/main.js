@@ -1,7 +1,8 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, clipboard } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, clipboard, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Store from 'electron-store';
+import { autoUpdater } from 'electron-updater';
 import { detectActiveWindow } from './windowDetector.js';
 import { sendToApp } from './inputSimulator.js';
 
@@ -89,6 +90,7 @@ function createTray() {
   tray = new Tray(icon);
   const contextMenu = Menu.buildFromTemplate([
     { label: '显示 VibeCoder', click: () => toggleWindow() },
+    { label: '检查更新...', click: () => autoUpdater.checkForUpdatesAndNotify() },
     { type: 'separator' },
     { label: '退出', click: () => app.quit() },
   ]);
@@ -110,6 +112,37 @@ function toggleWindow() {
   }
 }
 
+// ─── Auto Updater ───
+
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-available', (info) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'available', version: info.version });
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
+  }
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'VibeCoder 更新就绪',
+    message: `新版本 v${info.version} 已下载完成，重启后生效。`,
+    buttons: ['立即重启', '稍后'],
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+
+autoUpdater.on('error', (err) => {
+  console.log('Auto-update error:', err.message);
+});
+
 app.whenReady().then(() => {
   createWindow();
   createTray();
@@ -118,6 +151,11 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+Shift+K', () => {
     toggleWindow();
   });
+
+  // Check for updates (skip in dev)
+  if (!process.env.VITE_DEV_SERVER_URL) {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -171,4 +209,12 @@ ipcMain.handle('store-set', (_, key, value) => {
 ipcMain.handle('copy-to-clipboard', (_, text) => {
   clipboard.writeText(text);
   return true;
+});
+
+ipcMain.handle('check-for-updates', () => {
+  autoUpdater.checkForUpdatesAndNotify();
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
 });

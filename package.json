@@ -1,16 +1,58 @@
 {
-  "name": "vibecoder-keyboard",
-  "private": true,
+  "name": "vibecoder",
   "version": "2.0.0",
+  "description": "Cyberpunk floating AI command console for Cursor, Claude Code, VS Code, Kimi CLI and more",
+  "author": "hequbing",
+  "license": "MIT",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.hequbing.vibecoder",
+    "productName": "VibeCoder",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
+        }
+      ],
+      "icon": null
+    },
+    "dmg": {
+      "title": "VibeCoder ${version}",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "dongsheng123132",
+      "repo": "vibecoder"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    }
   },
   "dependencies": {
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^3.7.0"
@@ -20,6 +62,7 @@
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
     "electron": "^40.6.1",
+    "electron-builder": "^26.8.1",
     "vite": "^5.2.0",
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6"
